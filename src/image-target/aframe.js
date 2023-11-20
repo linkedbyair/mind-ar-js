@@ -171,7 +171,7 @@ AFRAME.registerSystem('mindar-image-system', {
       }
     }
 
-    await this.controller.dummyRun(this.video);
+    console.log("dummyRun disabled");
     this.el.emit("arReady");
     this.ui.hideLoading();
     this.ui.showScanning();
