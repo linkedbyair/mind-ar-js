@@ -1,6 +1,5 @@
-import {Controller, UI} from './index.js';
+const {Controller, UI} = window.MINDAR.IMAGE;
 
-const needsDOMRefresh=document.readyState === 'complete'||document.readyState=='interactive';
 AFRAME.registerSystem('mindar-image-system', {
   container: null,
   video: null,
@@ -13,14 +12,11 @@ AFRAME.registerSystem('mindar-image-system', {
   tick: function() {
   },
 
-  setup: function({imageTargetSrc, maxTrack, showStats, uiLoading, uiScanning, uiError, missTolerance, warmupTolerance, filterMinCF, filterBeta}) {
+  setup: function({imageTargetSrc, maxTrack, showStats, uiLoading, uiScanning, uiError, captureRegion}) {
     this.imageTargetSrc = imageTargetSrc;
     this.maxTrack = maxTrack;
-    this.filterMinCF = filterMinCF;
-    this.filterBeta = filterBeta;
-    this.missTolerance = missTolerance;
-    this.warmupTolerance = warmupTolerance;
     this.showStats = showStats;
+    this.captureRegion = captureRegion;
     this.ui = new UI({uiLoading, uiScanning, uiError});
   },
 
@@ -53,7 +49,6 @@ AFRAME.registerSystem('mindar-image-system', {
       track.stop();
     });
     this.video.remove();
-    this.controller.dispose();
   },
 
   pause: function(keepVideo=false) {
@@ -107,63 +102,6 @@ AFRAME.registerSystem('mindar-image-system', {
     const video = this.video;
     const container = this.container;
 
-    this.controller = new Controller({
-      inputWidth: video.videoWidth,
-      inputHeight: video.videoHeight,
-      maxTrack: this.maxTrack, 
-      filterMinCF: this.filterMinCF,
-      filterBeta: this.filterBeta,
-      missTolerance: this.missTolerance,
-      warmupTolerance: this.warmupTolerance,
-      onUpdate: (data) => {
-	if (data.type === 'processDone') {
-	  if (this.mainStats) this.mainStats.update();
-	}
-	else if (data.type === 'updateMatrix') {
-	  const {targetIndex, worldMatrix} = data;
-
-	  for (let i = 0; i < this.anchorEntities.length; i++) {
-	    if (this.anchorEntities[i].targetIndex === targetIndex) {
-	      this.anchorEntities[i].el.updateWorldMatrix(worldMatrix, );
-	    }
-    }
-
-    let isAnyVisible = this.anchorEntities.reduce((acc, entity) => {
-      return acc || entity.el.el.object3D.visible;
-    }, false);
-    if (isAnyVisible) {
-      this.ui.hideScanning();
-    } else {
-      this.ui.showScanning();
-    }
-	}
-      }
-    });
-
-    this._resize();
-    window.addEventListener('resize', this._resize.bind(this));
-
-    const {dimensions: imageTargetDimensions} = await this.controller.addImageTargets(this.imageTargetSrc);
-
-    for (let i = 0; i < this.anchorEntities.length; i++) {
-      const {el, targetIndex} = this.anchorEntities[i];
-      if (targetIndex < imageTargetDimensions.length) {
-        el.setupMarker(imageTargetDimensions[targetIndex]);
-      }
-    }
-
-    await this.controller.dummyRun(this.video);
-    this.el.emit("arReady");
-    this.ui.hideLoading();
-    this.ui.showScanning();
-
-    this.controller.processVideo(this.video);
-  },
-
-  _resize: function() {
-    const video = this.video;
-    const container = this.container;
-
     let vw, vh; // display css width, height
     const videoRatio = video.videoWidth / video.videoHeight;
     const containerRatio = container.clientWidth / container.clientHeight;
@@ -174,6 +112,33 @@ AFRAME.registerSystem('mindar-image-system', {
       vw = container.clientWidth;
       vh = vw / videoRatio;
     }
+
+    this.controller = new Controller({
+      inputWidth: video.videoWidth,
+      inputHeight: video.videoHeight,
+      maxTrack: this.maxTrack, 
+      onUpdate: (data) => {
+	if (data.type === 'processDone') {
+	  if (this.mainStats) this.mainStats.update();
+	}
+	else if (data.type === 'updateMatrix') {
+	  const {targetIndex, worldMatrix} = data;
+
+	  for (let i = 0; i < this.anchorEntities.length; i++) {
+	    if (this.anchorEntities[i].targetIndex === targetIndex) {
+	      if (worldMatrix) {
+		this.anchorEntities[i].el.updatePaint(this.controller.capturedRegion);
+	      }
+	      this.anchorEntities[i].el.updateWorldMatrix(worldMatrix, );
+	      if (worldMatrix) {
+		this.ui.hideScanning();
+	      }
+	    }
+	  }
+	}
+      }
+    });
+    this.controller.shouldCaptureRegion = this.captureRegion;
 
     const proj = this.controller.getProjectionMatrix();
     const fov = 2 * Math.atan(1/proj[5] / vh * container.clientHeight ) * 180 / Math.PI; // vertical fov
@@ -196,7 +161,23 @@ AFRAME.registerSystem('mindar-image-system', {
     this.video.style.left = (-(vw - container.clientWidth) / 2) + "px";
     this.video.style.width = vw + "px";
     this.video.style.height = vh + "px";
-  }
+
+    const {dimensions: imageTargetDimensions} = await this.controller.addImageTargets(this.imageTargetSrc);
+
+    for (let i = 0; i < this.anchorEntities.length; i++) {
+      const {el, targetIndex} = this.anchorEntities[i];
+      if (targetIndex < imageTargetDimensions.length) {
+        el.setupMarker(imageTargetDimensions[targetIndex]);
+      }
+    }
+
+    console.log("dummyRun disabled");
+    this.el.emit("arReady");
+    this.ui.hideLoading();
+    this.ui.showScanning();
+
+    this.controller.processVideo(this.video);
+  },
 });
 
 AFRAME.registerComponent('mindar-image', {
@@ -205,11 +186,8 @@ AFRAME.registerComponent('mindar-image', {
   schema: {
     imageTargetSrc: {type: 'string'},
     maxTrack: {type: 'int', default: 1},
-    filterMinCF: {type: 'number', default: -1},
-    filterBeta: {type: 'number', default: -1},
-    missTolerance: {type: 'int', default: -1},
-    warmupTolerance: {type: 'int', default: -1},
     showStats: {type: 'boolean', default: false},
+    captureRegion: {type: 'boolean', default: false},
     autoStart: {type: 'boolean', default: true},
     uiLoading: {type: 'string', default: 'yes'},
     uiScanning: {type: 'string', default: 'yes'},
@@ -222,10 +200,7 @@ AFRAME.registerComponent('mindar-image', {
     arSystem.setup({
       imageTargetSrc: this.data.imageTargetSrc, 
       maxTrack: this.data.maxTrack,
-      filterMinCF: this.data.filterMinCF === -1? null: this.data.filterMinCF,
-      filterBeta: this.data.filterBeta === -1? null: this.data.filterBeta,
-      missTolerance: this.data.missTolerance === -1? null: this.data.missTolerance,
-      warmupTolerance: this.data.warmupTolerance === -1? null: this.data.warmupTolerance,
+      captureRegion: this.data.captureRegion,
       showStats: this.data.showStats,
       uiLoading: this.data.uiLoading,
       uiScanning: this.data.uiScanning,
@@ -236,10 +211,6 @@ AFRAME.registerComponent('mindar-image', {
         arSystem.start();
       });
     }
-  },  
-  remove: function () {
-    const arSystem = this.el.sceneEl.systems['mindar-image-system'];
-    arSystem.stop();
   }
 });
 
@@ -256,13 +227,23 @@ AFRAME.registerComponent('mindar-image-target', {
     const arSystem = this.el.sceneEl.systems['mindar-image-system'];
     arSystem.registerAnchor(this, this.data.targetIndex);
 
-    this.invisibleMatrix = new AFRAME.THREE.Matrix4().set(0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0);
-
     const root = this.el.object3D;
+
+    this.paintMaterial = null;
+
+    const modelEl = this.el.querySelector("a-gltf-model")
+    if (modelEl && modelEl.getAttribute("mindar-image-paint")) {
+      modelEl.addEventListener('model-loaded', () => {
+	modelEl.getObject3D('mesh').traverse((o) => {
+	  if (o.isMesh && o.material && o.material.name === modelEl.getAttribute("mindar-image-paint")) {
+	    this.paintMaterial = o.material;
+	  }
+	});
+      });
+    }
+
     root.visible = false;
     root.matrixAutoUpdate = false;
-
-    root.matrix = this.invisibleMatrix;
   },
 
   setupMarker([markerWidth, markerHeight]) {
@@ -279,7 +260,6 @@ AFRAME.registerComponent('mindar-image-target', {
   },
 
   updateWorldMatrix(worldMatrix) {
-    this.el.emit("targetUpdate");
     if (!this.el.object3D.visible && worldMatrix !== null) {
       this.el.emit("targetFound");
     } else if (this.el.object3D.visible && worldMatrix === null) {
@@ -288,22 +268,43 @@ AFRAME.registerComponent('mindar-image-target', {
 
     this.el.object3D.visible = worldMatrix !== null;
     if (worldMatrix === null) {
-      this.el.object3D.matrix = this.invisibleMatrix;
       return;
     }
     var m = new AFRAME.THREE.Matrix4();
     m.elements = worldMatrix;
     m.multiply(this.postMatrix);
     this.el.object3D.matrix = m;
-  }
+  },
+
+  updatePaint(pixels) {
+    if (!this.paintMaterial || this.el.object3D.visible) return;
+
+    const height = pixels.length;
+    const width = pixels[0].length;
+    const data = new Uint8ClampedArray(height * width * 4);
+    for (let j = 0; j < height; j++) {
+      for (let i = 0; i < width; i++) {
+	const pos = j * width + i;
+	data[pos*4 + 0] = pixels[j][i][0];
+	data[pos*4 + 1] = pixels[j][i][1];
+	data[pos*4 + 2] = pixels[j][i][2];
+	data[pos*4 + 3] = 255; 
+      }
+    }
+    const imageData = new ImageData(data, width, height);
+    const canvas = document.createElement("canvas");
+    canvas.height = height;
+    canvas.width = width;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.putImageData(imageData, 0, 0);
+
+    const dataURL = canvas.toDataURL("image/png");
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.load(dataURL, (texture) => {
+      this.paintMaterial.map.dispose();
+      this.paintMaterial.map = texture;
+      this.paintMaterial.needsUpdate = true;
+    });
+  },
 });
-/*
-This is a hack.
-If the user's browser has cached A-Frame,
-then A-Frame will process the webpage *before* the system and components get registered.
-Resulting in a blank page. This happens because module loading is deferred. 
-*/
-/* if(needsDOMRefresh){
-  console.log("mindar-face-aframe::Refreshing DOM...")
-  document.body.innerHTML=document.body.innerHTML;
-} */
