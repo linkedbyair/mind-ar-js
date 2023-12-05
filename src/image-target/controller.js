@@ -137,7 +137,6 @@ class Controller {
     this.processingVideo = true;
 
     this.trackingStates = [];
-    console.log("this.markerDimensions", this.markerDimensions)
     if (this.markerDimensions === null) return;
     for (let i = 0; i < this.markerDimensions.length; i++) {
       this.trackingStates.push({
@@ -165,7 +164,6 @@ class Controller {
 	if (nTracking < this.maxTrack) {
 
 	  const matchingIndexes = [];
-    console.log("this.trackingStates", this.trackingStates)
 	  for (let i = 0; i < this.trackingStates.length; i++) {
 	    const trackingState = this.trackingStates[i];
 	    if (trackingState.isTracking === true) continue;
@@ -187,7 +185,6 @@ class Controller {
 	}
 
 	// tracking update
-  console.log("this.trackingStates", this.trackingStates)
 	for (let i = 0; i < this.trackingStates.length; i++) {
 	  const trackingState = this.trackingStates[i];
 
