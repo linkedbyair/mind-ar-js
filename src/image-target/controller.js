@@ -137,6 +137,7 @@ class Controller {
     this.processingVideo = true;
 
     this.trackingStates = [];
+    console.log("this.markerDimensions", this.markerDimensions)
     for (let i = 0; i < this.markerDimensions.length; i++) {
       this.trackingStates.push({
 	showing: false,
@@ -163,6 +164,7 @@ class Controller {
 	if (nTracking < this.maxTrack) {
 
 	  const matchingIndexes = [];
+    console.log("this.trackingStates", this.trackingStates)
 	  for (let i = 0; i < this.trackingStates.length; i++) {
 	    const trackingState = this.trackingStates[i];
 	    if (trackingState.isTracking === true) continue;
@@ -184,6 +186,7 @@ class Controller {
 	}
 
 	// tracking update
+  console.log("this.trackingStates", this.trackingStates)
 	for (let i = 0; i < this.trackingStates.length; i++) {
 	  const trackingState = this.trackingStates[i];
 
@@ -235,11 +238,13 @@ class Controller {
 	    if (trackingState.trackingMatrix === null) {
 	      trackingState.trackingMatrix = worldMatrix;
 	    } else {
+        console.log("worldMatrix", worldMatrix)
 	      for (let j = 0; j < worldMatrix.length; j++) {
 		trackingState.trackingMatrix[j] = trackingState.trackingMatrix[j] + (worldMatrix[j] - trackingState.trackingMatrix[j]) / INTERPOLATION_FACTOR;
 	      }
 	    }
 	    const clone = [];
+      console.log("worldMatrix", worldMatrix)
 	    for (let j = 0; j < worldMatrix.length; j++) {
 	      clone[j] = trackingState.trackingMatrix[j];
 	    }
