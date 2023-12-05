@@ -122,7 +122,6 @@ AFRAME.registerSystem('mindar-image-system', {
 	else if (data.type === 'updateMatrix') {
 	  const {targetIndex, worldMatrix} = data;
 
-    if (!this.anchorEntities.length) return;
 	  for (let i = 0; i < this.anchorEntities.length; i++) {
 	    if (this.anchorEntities[i].targetIndex === targetIndex) {
 	      this.anchorEntities[i].el.updateWorldMatrix(worldMatrix, );
@@ -146,10 +145,9 @@ AFRAME.registerSystem('mindar-image-system', {
 
     const {dimensions: imageTargetDimensions} = await this.controller.addImageTargets(this.imageTargetSrc);
 
-    if (!this.anchorEntities.length) return;
     for (let i = 0; i < this.anchorEntities.length; i++) {
       const {el, targetIndex} = this.anchorEntities[i];
-      if (imageTargetDimensions.length && targetIndex < imageTargetDimensions.length) {
+      if (targetIndex < imageTargetDimensions.length) {
         el.setupMarker(imageTargetDimensions[targetIndex]);
       }
     }
