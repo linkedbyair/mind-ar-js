@@ -167,6 +167,7 @@ class Controller {
     this.processingVideo = true;
 
     this.trackingStates = [];
+    console.log("this.markerDimensions", this.markerDimensions)
     for (let i = 0; i < this.markerDimensions.length; i++) {
       this.trackingStates.push({
 	showing: false,

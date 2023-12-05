@@ -54264,8 +54264,9 @@ class MY {
     return o.length < 4 ? null : await this._workerTrackUpdate(e, { worldCoords: o, screenCoords: r });
   }
   processVideo(t) {
-    if (this.processingVideo || (this.processingVideo = !0, this.trackingStates = [], !this.markerDimensions.length))
+    if (this.processingVideo)
       return;
+    this.processingVideo = !0, this.trackingStates = [], console.log("this.markerDimensions", this.markerDimensions);
     for (let s = 0; s < this.markerDimensions.length; s++)
       this.trackingStates.push({
         showing: !1,
@@ -54280,15 +54281,11 @@ class MY {
         const s = this.inputLoader.loadInput(t);
         if (this.trackingStates.reduce((r, i) => r + (i.isTracking ? 1 : 0), 0) < this.maxTrack) {
           const r = [];
-          if (!this.trackingStates.length)
-            return;
           for (let l = 0; l < this.trackingStates.length; l++)
             this.trackingStates[l].isTracking !== !0 && (this.interestedTargetIndex !== -1 && this.interestedTargetIndex !== l || r.push(l));
           const { targetIndex: i, modelViewTransform: a } = await this._detectAndMatch(s, r);
           i !== -1 && (this.trackingStates[i].isTracking = !0, this.trackingStates[i].currentModelViewTransform = a);
         }
-        if (!this.trackingStates.length)
-          return;
         for (let r = 0; r < this.trackingStates.length; r++) {
           const i = this.trackingStates[r];
           if (i.isTracking) {
@@ -54299,8 +54296,6 @@ class MY {
             const a = this._glModelViewMatrix(i.currentModelViewTransform, r);
             i.trackingMatrix = i.filter.filter(Date.now(), a);
             let l = [];
-            if (!i.trackingMatrix.length)
-              return;
             for (let u = 0; u < i.trackingMatrix.length; u++)
               l[u] = i.trackingMatrix[u];
             t.width === this.inputHeight && t.height === this.inputWidth && (l = this.getRotatedZ90Matrix(l)), this.onUpdate && this.onUpdate({ type: "updateMatrix", targetIndex: r, worldMatrix: l });
