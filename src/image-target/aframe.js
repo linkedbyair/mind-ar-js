@@ -146,6 +146,7 @@ AFRAME.registerSystem('mindar-image-system', {
 
     const {dimensions: imageTargetDimensions} = await this.controller.addImageTargets(this.imageTargetSrc);
 
+    if (!this.anchorEntities.length) return;
     for (let i = 0; i < this.anchorEntities.length; i++) {
       const {el, targetIndex} = this.anchorEntities[i];
       if (targetIndex < imageTargetDimensions.length) {
