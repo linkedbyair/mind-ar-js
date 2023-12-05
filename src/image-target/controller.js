@@ -138,6 +138,7 @@ class Controller {
 
     this.trackingStates = [];
     console.log("this.markerDimensions", this.markerDimensions)
+    if (this.markerDimensions === null) return;
     for (let i = 0; i < this.markerDimensions.length; i++) {
       this.trackingStates.push({
 	showing: false,
