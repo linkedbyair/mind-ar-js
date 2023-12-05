@@ -1,4 +1,4 @@
-import { C as o, a as r } from "./controller-495b585f.js";
+import { C as o, a as r } from "./controller-3fc30043.js";
 import { U as i } from "./ui-85e81035.js";
 window.MINDAR || (window.MINDAR = {});
 window.MINDAR.IMAGE = {
