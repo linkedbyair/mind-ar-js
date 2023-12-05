@@ -122,6 +122,7 @@ AFRAME.registerSystem('mindar-image-system', {
 	else if (data.type === 'updateMatrix') {
 	  const {targetIndex, worldMatrix} = data;
 
+    if (!this.anchorEntities.length) return;
 	  for (let i = 0; i < this.anchorEntities.length; i++) {
 	    if (this.anchorEntities[i].targetIndex === targetIndex) {
 	      this.anchorEntities[i].el.updateWorldMatrix(worldMatrix, );
